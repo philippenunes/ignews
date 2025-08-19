@@ -2,7 +2,7 @@ import { stripe } from "@/src/services/stripe";
 import { NextApiRequest, NextApiResponse } from "next";
 import { Readable } from 'stream';
 import Stripe from "stripe";
-import { saveSubscription } from "./_lib/manageSubscription";
+import { saveSubscription, deactivateSubscription } from "./_lib/manageSubscription";
 
 async function buffer(readable: Readable) {
     const chunks = [];
@@ -20,8 +20,11 @@ export const config = {
     }
 }
 
-const relevantEvents = new Set([
-    'checkout.session.completed'
+const relevantEvents = new Set<Stripe.Event['type']>([
+    'checkout.session.completed',
+    'customer.subscription.created',
+    'customer.subscription.updated',
+    'customer.subscription.deleted'
 ])
 
 export default async function webhooks(req: NextApiRequest, res: NextApiResponse) {
@@ -57,7 +60,6 @@ export default async function webhooks(req: NextApiRequest, res: NextApiResponse
         try {
             switch (type) {
                 case 'checkout.session.completed':
-
                     const checkoutSession = event.data.object as Stripe.Checkout.Session;
 
                     await saveSubscription(
@@ -65,8 +67,15 @@ export default async function webhooks(req: NextApiRequest, res: NextApiResponse
                         checkoutSession.customer?.toString()!
                     )
                     break;
+                case 'customer.subscription.updated':
+                    // TODO: Handle subscription updated
+                    break;
+                case 'customer.subscription.deleted':
+                    const deletedSubscription = event.data.object as Stripe.Subscription;
+                    await deactivateSubscription(deletedSubscription.id);
+                    break;
                 default:
-                    throw new Error('Unhandled event.!')
+                    throw new Error('Unhandled event!')
             }
         } catch (err) {
             console.log(err)

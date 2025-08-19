@@ -1,6 +1,6 @@
 import { stripe } from "@/src/services/stripe";
 import { db } from "@/src/services/firebase";
-import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from "firebase/firestore";
 
 export async function saveSubscription(
     subscriptionId: string,
@@ -29,5 +29,29 @@ export async function saveSubscription(
         userId: userId,
         status: subscription.status,
         price_id: subscription.items.data[0].price.id
+    });
+}
+
+export async function deactivateSubscription(
+    subscriptionId: string
+) {
+    // Busca a subscription no Firebase pelo ID
+    const subscriptionQuery = query(
+        collection(db, "subscriptions"),
+        where("id", "==", subscriptionId)
+    );
+    const subscriptionSnapshot = await getDocs(subscriptionQuery);
+
+    if (subscriptionSnapshot.empty) {
+        throw new Error('Subscription not found in database');
+    }
+
+    const subscriptionDoc = subscriptionSnapshot.docs[0];
+
+    // Recupera a subscription atualizada no Stripe
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    await updateDoc(doc(db, "subscriptions", subscriptionDoc.id), {
+        status: subscription.status
     });
 }
