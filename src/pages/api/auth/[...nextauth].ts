@@ -1,7 +1,7 @@
 import NextAuth, { AuthOptions, Account, Profile, User } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import { db } from "../../../services/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -14,13 +14,21 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user }): Promise<boolean> {
       try {
-        await addDoc(
+        const userQuery = query(
           collection(db, "users"),
-          {
-            email: user.email,
-            createdAt: new Date()
-          }
+          where("email", "==", user.email)
         );
+        const userSnapshot = await getDocs(userQuery);
+   
+        if (userSnapshot.empty) {
+          await addDoc(
+            collection(db, "users"),
+            {
+              email: user.email,
+              createdAt: new Date()
+            }
+          );
+        }
       } catch {
         return false;
       }
