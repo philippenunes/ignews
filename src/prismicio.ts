@@ -39,6 +39,7 @@ export const createClient = ({
 }: CreateClientConfig = {}) => {
   const client = baseCreateClient(repositoryName, {
     routes,
+    accessToken: process.env.PRISMIC_ACCESS_TOKEN, 
     ...config,
   });
 
