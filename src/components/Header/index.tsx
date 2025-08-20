@@ -1,5 +1,9 @@
 import { SignInButton } from '../SignInButton';
+import Link from 'next/link'
+
 import styles from './styles.module.scss';
+import { useRouter } from 'next/router';
+import { ActiveLink } from '../ActiveLink';
 
 export function Header() {
     return (
@@ -7,8 +11,16 @@ export function Header() {
             <div className={styles.headerContent}>
                 <img src="/images/logo.svg" alt="" />
                 <nav>
-                    <a className={styles.active} href="">Home</a>
-                    <a href="">Post</a>
+                    <ActiveLink
+                        activeClassName={styles.active}
+                        href="/">
+                        Home
+                    </ActiveLink>
+                    <ActiveLink
+                        activeClassName={styles.active}
+                        href="/posts">
+                        Posts
+                    </ActiveLink>
                 </nav>
 
                 <SignInButton />
