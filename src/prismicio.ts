@@ -1,12 +1,12 @@
 import {
   createClient as baseCreateClient,
-  type Routes,
 } from "@prismicio/client";
 import {
   enableAutoPreviews,
   type CreateClientConfig,
 } from "@prismicio/next/pages";
 import sm from "../slicemachine.config.json";
+import { Route } from "next";
 
 /**
  * The project's Prismic repository name.
