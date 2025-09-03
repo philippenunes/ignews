@@ -12,6 +12,47 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
+    async session({ session }) {
+      let userActiveSubscription = null;
+
+      try {
+        if (!session.user?.email) return session;
+
+        const userQuery = query(
+          collection(db, "users"),
+          where("email", "==", session.user.email)
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (!userSnapshot.empty) {
+          const userDoc = userSnapshot.docs[0];
+          const userId = userDoc.id;
+
+          const subscriptionsQuery = query(
+            collection(db, "subscriptions"),
+            where("userId", "==", userId),
+            where("status", "==", "active")
+          );
+          const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
+
+          if (!subscriptionsSnapshot.empty) {
+            const subDoc = subscriptionsSnapshot.docs[0];
+            userActiveSubscription = {
+              id: subDoc.id,
+              ...subDoc.data(),
+            };
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao buscar subscriptions:", err);
+      }
+
+      return {
+        ...session,
+        activeSubscription: userActiveSubscription,
+      };
+    },
+
     async signIn({ user }): Promise<boolean> {
       try {
         const userQuery = query(
@@ -19,17 +60,15 @@ export const authOptions: AuthOptions = {
           where("email", "==", user.email)
         );
         const userSnapshot = await getDocs(userQuery);
-   
+
         if (userSnapshot.empty) {
-          await addDoc(
-            collection(db, "users"),
-            {
-              email: user.email,
-              createdAt: new Date()
-            }
-          );
+          await addDoc(collection(db, "users"), {
+            email: user.email,
+            createdAt: new Date(),
+          });
         }
-      } catch {
+      } catch (err) {
+        console.error("Erro no signIn:", err);
         return false;
       }
 
